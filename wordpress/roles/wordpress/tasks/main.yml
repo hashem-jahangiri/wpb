@@ -1,0 +1,132 @@
+---
+# tasks file for wordpress
+- name: Extract user's files to destination
+  unarchive:
+    src: "/mnt/{{ user_name }}-{{ project_name }}/{{ user_name }}-{{ project_name }}.tar"
+    dest: "/mnt/{{ user_name }}-{{ project_name }}/"
+    remote_src: yes
+  when: project_wordpress_import|bool == true
+  run_once: true
+  tags:
+    - init-cluster
+    - unarchive-wordpress
+
+- name: mv file to previous folder
+  command: "bash -c 'mv /mnt/{{ user_name }}-{{ project_name }}/public_html/{*,.[!.]*} /mnt/{{ user_name }}-{{ project_name }}'"
+  run_once: true
+  when: project_wordpress_import|bool == true
+  register: result
+  failed_when: result.rc == 1 and "No such file or directory" not in result.stderr
+  tags:
+    - init-cluster
+    - unarchive-wordpress
+
+- name: Remove the file .tar
+  file:
+    path: "/mnt/{{ user_name }}-{{ project_name }}/{{ user_name }}-{{ project_name }}.tar"
+    state: absent
+  when: project_wordpress_import|bool == true
+  run_once: true
+  tags:
+    - init-cluster
+  
+- name: Remove ../public_html directory
+  shell: "rm -rf /mnt/{{ user_name }}-{{ project_name }}/public_html"
+  when: project_wordpress_import|bool == true
+  run_once: true
+  tags:
+    - init-cluster
+
+- name: Backup from wp-config
+  copy:
+    src: "/mnt/{{ user_name }}-{{ project_name }}/wp-config.php"
+    dest: "/mnt/{{ user_name }}-{{ project_name }}/wp-config.php.bk"
+    remote_src: yes
+  when: project_wordpress_import|bool == true
+  tags:
+    - init-cluster
+
+- name: Config database for users
+  ansible.builtin.lineinfile:
+    path: /mnt/{{ user_name }}-{{ project_name }}/wp-config.php
+    regexp: "{{ item.command }}"
+    line: "{{ item.replace }}"
+    backrefs: yes
+  with_items: "{{ database_commands }}"
+  when: project_wordpress_import|bool == true
+  tags:
+    - init-cluster
+    - unarchive-wordpress
+  
+- name: Remove ssl config
+  ansible.builtin.lineinfile:
+    path: /mnt/{{ user_name }}-{{ project_name }}/wp-config.php
+    regexp: "{{ item.command }}"
+    line: "{{ item.replace }}"
+    backrefs: yes
+  when: project_wordpress_import|bool == true
+  with_items: "{{ remove_ssl_commands }}"
+  tags:
+    - init-cluster
+    - unarchive-wordpress
+
+- name: Add ssl config to wp-config
+  ansible.builtin.lineinfile:
+    path: "/mnt/{{ user_name }}-{{ project_name }}/wp-config.php"
+    line: "{{ item }}"
+    insertafter: ' *<\?php *'
+  with_items: "{{ https_config_lines}}"
+  when: domain_https|bool==true
+  tags:
+    - modify-wp-https
+    - init-cluster
+
+- name: Create wordpress service
+  docker_swarm_service:
+    name: "{{ user_name }}-{{ project_name }}"
+    hostname: "{{ user_name }}-{{ project_name }}"
+    image: "{{ image_name|default('wordpress:php7.4-apache',true) }}"
+    placement:
+      constraints:
+        - node.labels.type == swarm
+    mounts:
+      - source: "/mnt/{{ user_name }}-{{ project_name }}"
+        target: "/var/www/html"
+        type: bind
+    networks:
+      - name: "{{ swarm_network|default('baloot') }}"
+    reservations:
+      cpus: "{{ cpu_reservation|default('0.25',true) }}"
+      memory: "{{ memory_reservation|default('20M',true) }}"
+    limits:
+      cpus: "{{ cpu_limit|default('2',true) }}"
+      memory: "{{ memory_limit|default('800M',true) }}"
+    env:
+      WORDPRESS_DB_HOST: "{{ db_host|default('db') }}"
+      WORDPRESS_DB_USER: "{{ user_name }}"
+      WORDPRESS_DB_PASSWORD: "{{ user_password }}"
+      WORDPRESS_DB_NAME: "{{ user_name }}-{{ project_name }}"
+    healthcheck:
+      test: curl -sS http://127.0.0.1 || exit 1
+      interval: 5s
+      timeout: 10s
+      retries: 3
+  run_once: true
+  tags:
+    - init-cluster
+    - create-docker-service
+
+- name: Remove service
+  docker_swarm_service:
+    name: "{{ user_name }}-{{ project_name }}"
+    state: absent
+  run_once: true
+  tags:
+    - remove-cluster
+    - remove-docker-service
+
+
+
+
+    
+    

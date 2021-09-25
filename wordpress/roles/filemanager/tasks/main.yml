@@ -1,0 +1,58 @@
+---
+# defaults file for filemanager
+
+- name: copy nginx http config files
+  template:
+    src: config.php.j2
+    dest: "/mnt/filemanager/{{ user_name }}-{{ project_name }}.php"
+  tags:
+    - filemanager-copy
+    - init-cluster
+- name: delete filemanager config files
+  file:
+    path: "/mnt/filemanager/{{ user_name }}-{{ project_name }}.php"
+    state: absent
+  tags:
+    - nginx-filemanager
+    - remove-cluster
+
+
+- name: Create filemanager service
+  docker_swarm_service:
+    name: "{{ user_name }}-{{ project_name }}-filemanager"
+    hostname: "{{ user_name }}-{{ project_name }}-filemanager"
+    image: "{{ image_name|default('tinyfilemanager/tinyfilemanager:master',true) }}"
+    placement:
+      constraints:
+        - node.labels.type == swarm
+    mounts:
+      - source: "/mnt/filemanager/{{ user_name }}-{{ project_name }}.php"
+        target: "/var/www/html/config.php"
+        type: bind
+      - source: "/mnt/{{ user_name }}-{{ project_name }}/"
+        target: "/var/www/html/data"
+        type: bind
+    networks:
+      - name: "{{ swarm_network|default('baloot') }}"
+        # aliases:
+        #   - "{{ user_name }}.{{ project_name }}"
+    reservations:
+      cpus: "{{ cpu_reservation_filemanager|default('0.25',true) }}"
+      memory: "{{ memory_reservation_filemanager|default('20M',true) }}"
+    limits:
+      cpus: "{{ cpu_limit_filemanager|default('1',true) }}"
+      memory: "{{ memory_limit_filemanager|default('200M',true) }}"
+  run_once: true
+  tags:
+    - init-cluster
+    - create-filemanager-service
+
+
+- name: Remove service
+  docker_swarm_service:
+    name: "{{ user_name }}-{{ project_name }}-filemanager"
+    state: absent
+  run_once: true
+  tags:
+    - remove-cluster
+    - remove-filemanager-service

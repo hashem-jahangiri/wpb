@@ -1,0 +1,6 @@
+---
+- import_playbook: baloot-nginx.yml
+- import_playbook: baloot-wordpress.yml
+- import_playbook: baloot-database.yml
+- import_playbook: baloot-filemanager.yml
+- import_playbook: baloot-gluster.yml

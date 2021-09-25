@@ -1,0 +1,23 @@
+version: "3.8"
+networks:
+  baloot:
+    external: True
+    name: baloot
+
+services:
+  db:
+    image: mariadb:1.1
+    restart: always
+    deploy:
+      placement:
+        constraints:
+        - node.labels.type == database
+          #- node.labels.servernumber == 1
+    environment:
+      - MARIADB_ROOT_PASSWORD=your_password
+    volumes:
+      - /mnt/databases:/var/lib/mysql
+      - "/mnt/databases_conf/50-server.cnf:/etc/mysql/mariadb.conf.d/50-server.cnf:ro"
+    networks:
+      baloot:
+

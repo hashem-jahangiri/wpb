@@ -1,0 +1,78 @@
+---
+# tasks file for nginx
+- name: install nginx
+  apt:
+    name: nginx
+    update_cache: yes
+  tags:
+    - nginx-tunning
+
+- name: copy nginx http config files
+  template:
+    src: http.conf.j2
+    dest: "{{ remote_path }}/{{ user_name }}-{{ project_name }}.conf"
+  when: domain_https|bool==false
+  tags:
+    - nginx-copy-http
+    - init-cluster
+
+- name: create nginx ssl files directory
+  file:
+    path: "{{ ssl_path }}/{{ domain_name }}"
+    state: directory
+  tags:
+    - nginx-create
+    - init-cluster
+
+- name: copy ssl certificate and private key
+  copy:
+    src: "/mnt/{{ user_name }}-{{ project_name }}.{{ item }}"
+    dest: "{{ ssl_path}}/{{ domain_name }}/{{ item }}"
+  when: domain_https|bool==true
+  with_items: "{{ ssl_files }}"
+  tags:
+    - nginx-copy-ssl
+    - init-cluster
+
+- name: copy ssl certificate and private key for default domain
+  copy:
+    src: "/mnt/{{ item }}"
+    dest: "{{ ssl_path}}/{{ item }}"
+  when: domain_https|bool==true
+  with_items: "{{ ssl_files }}"
+  tags:
+    - nginx-copy-ssl
+    - init-cluster
+
+
+- name: copy nginx https config files
+  template:
+    src: https.conf.j2
+    dest: "{{ remote_path }}/{{ user_name }}-{{ project_name }}.conf"
+  when: domain_https|bool==true
+  tags:
+    - nginx-copy-https
+    - init-cluster
+
+- name: delete nginx config files
+  file:
+    path: "{{ remote_path }}/{{ user_name }}-{{ project_name }}.conf"
+    state: absent
+  tags:
+    - nginx-delete
+    - remove-cluster
+    
+- name: delete nginx ssl files
+  file:
+    path: "{{ ssl_path}}/{{ domain_name }}/"
+    state: absent
+  tags:
+    - nginx-delete-ssl
+    - remove-cluster
+
+- name: restart nginx
+  command: /usr/local/nginx/sbin/nginx -s reload
+  tags:
+   - init-cluster
+   - remove-cluster
+   - nginx-delete

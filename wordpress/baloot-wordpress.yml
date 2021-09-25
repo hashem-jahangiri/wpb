@@ -1,0 +1,27 @@
+---
+# - name: Manage wordpress container
+#   hosts: "{{ database_host_group|default('database') }}"
+#   gather_facts: false
+#   user: root
+#   pre_tasks:
+#     - name: Ensure database service is running
+#       service: name={{ item }} state=started
+#       with_items:
+#       - mysql 
+#     #TODO install database if necessory
+
+- name: Gather host facts
+  hosts: "{{ database_host_group|default('swarm') }}"
+  gather_facts: "{{ database_host_group | default(True) }}"
+  tags:
+    - always
+
+- name: Create Wordpress service on cluster
+  gather_facts: False
+  hosts: "{{ swarm_host_group|default('swarm') }}"
+  tasks:
+    - name: Create container for wordpress with default config
+      import_role:
+        name: wordpress
+  vars_files:
+    - "/mnt/{{ user_name|default('example') }}-{{ project_name|default('project') }}-value.yml"     

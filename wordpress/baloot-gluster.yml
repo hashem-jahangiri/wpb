@@ -1,0 +1,93 @@
+---
+- name: manage gluster volume for users
+  hosts: "{{ gluster_host_group|default('gluster') }}"
+  gather_facts: false
+  user: root
+  pre_tasks:
+    - name: Ensure gluster service is running
+      service: name={{ item }} state=started
+      with_items:
+      - glusterd 
+    #TODO install gluster if necessory
+
+- name: Gather host facts
+  hosts: "{{ gluster_host_group|default('gluster') }}"
+  gather_facts: "{{ gluster_gather_facts | default(True) }}"
+  tags:
+    - always
+
+- name: create volume for users
+  gather_facts: false
+  hosts: "{{ gluster_host_group|default('gluster') }}"
+  tasks:
+    - name: mange volume for user in gluster servers
+      import_role:
+        name: gluster
+  vars_files:
+    - "/mnt/{{ user_name|default('example') }}-{{ project_name|default('project') }}-value.yml"
+
+- name: Manage mount volume to all necessory host
+  gather_facts: false
+  hosts: "{{ user_mount_host_group|default('mounted') }}"
+  tasks:
+    - name: Check gluster repo added to server
+      apt_repository:
+        repo: ppa:gluster/glusterfs-7
+      # tags:
+      #   - init-cluster
+    - name: Check gluster is install to server
+      apt:
+        name: glusterfs-client
+        update_cache: yes
+      # tags:
+      #   - init-cluster
+    - name: Create mount point on hosts
+      mount:
+        src: "gluster:/{{ user_name }}-{{ project_name }}"
+        path: "/mnt/{{ user_name }}-{{ project_name }}"
+        fstype: glusterfs
+        opts: "defaults,_netdev"
+        state: mounted
+      # tags: 
+      #   - init-cluster
+      #   - check-mount
+    - name: Create mount point folder 
+      file:
+        path: "/mnt/{{ user_name }}-{{ project_name }}"
+        state: directory
+        mode: '0755'
+      tags: 
+        - init-cluster
+        - check-mount
+
+    - name: create mount point 
+      command: "mount -t glusterfs gluster1:/{{ user_name }}-{{ project_name }} /mnt/{{ user_name }}-{{ project_name }}"
+      tags: 
+        - init-cluster
+        - check-mount
+
+
+    - name: remove  mount point 
+      command: "umount /mnt/{{ user_name }}-{{ project_name }}"
+      tags: 
+        - remove-cluster
+        - check-mount
+    
+    # - name: Remove mount point on hosts
+    #   mount:
+    #     path: "/mnt/{{ user_name }}-{{ project_name }}"
+    #     fstype: glusterfs
+    #     opts: "defaults,_netdev"
+    #     state: absent
+    #   tags:
+    #     - remove-cluster
+    #     - check-mount
+
+
+  
+      
+
+
+
+
+

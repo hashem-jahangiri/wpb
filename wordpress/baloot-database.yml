@@ -1,0 +1,28 @@
+---
+- name: Manage databases for users
+  hosts: "{{ database_host_group|default('database') }}"
+  gather_facts: false
+  user: root
+  pre_tasks:
+    - name: Ensure database service is running
+      service: name={{ item }} state=started
+      with_items:
+      - mysql 
+    #TODO install database if necessory
+
+- name: Gather host facts
+  hosts: "{{ database_host_group|default('database') }}"
+  gather_facts: "{{ database_host_group | default(False) }}"
+  tags:
+    - always
+
+- name: Create user and database volume for users
+  gather_facts: false
+  hosts: "{{ database_host_group|default('localhost') }}"
+  tasks:
+    - name: manage user and database
+      import_role:
+        name: database
+  vars_files:
+    - "/mnt/{{ user_name|default('example') }}-{{ project_name|default('project') }}-value.yml"
+

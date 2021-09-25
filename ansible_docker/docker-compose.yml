@@ -1,0 +1,23 @@
+version: "3.8"
+networks:
+  baloot:
+    external: True
+    name: baloot
+
+services:
+
+  mw:
+    hostname: ansible
+    image: ansible:latest
+    deploy:
+      placement:
+        constraints:
+        - node.labels.type == mw
+          #      - node.labels.servernumber == 1
+
+    networks:
+      baloot:
+    volumes:
+      - /home/ansible:/home/ansible/
+      - /mw:/mv/
+      - /root/.ssh:/root/.ssh/

@@ -1,0 +1,21 @@
+version: "3.8"
+networks:
+  baloot:
+    external: True
+    name: baloot
+
+services:
+  ansible:
+    
+    image: python:3.8
+    deploy:
+      placement:
+        constraints:
+        - node.labels.type == mv
+    command: 'python /mw/python.py'
+    volumes:
+      - "/mw:/mw:ro"
+    networks:
+      baloot:
+        aliases:
+          - ansible

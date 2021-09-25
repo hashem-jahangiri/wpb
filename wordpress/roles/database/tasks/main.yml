@@ -1,0 +1,64 @@
+---
+# tasks file for database
+- name: Create a database for project
+  mysql_db:
+    login_user: root
+    login_password: "{{ root_password }}"
+    name: "{{ user_name }}-{{ project_name }}"
+    state: present
+    login_host: "{{ db_host }}"
+  tags:
+    - init-cluster
+    - mysql-create-database
+
+- name: Add user to database
+  mysql_user:
+    login_user: root
+    login_password: "{{ root_password }}"
+    name: "{{ user_name }}"
+    priv: '{{ user_name }}-{{ project_name }}.*:ALL'
+    host: "%"
+    password: "{{ user_password }}"
+    state: present
+    login_host: "{{ db_host }}"
+  tags:
+    - init-cluster
+    - mysql-create-user-priv
+
+- name: Delete user from database
+  mysql_user:
+    login_user: root
+    login_password: "{{ root_password }}"
+    name: "{{ user_name }}"
+    priv: '{{ user_name }}-{{ project_name }}.*:ALL'
+    #password: "{{ user_password }}"
+    host: "%"
+    state: absent
+    login_host: "{{ db_host }}"
+  tags:
+    - remove-cluster
+    - mysql-delete-user-priv
+
+- name: Import a database for project if file exists
+  mysql_db:
+    login_user: root
+    login_password: "{{ root_password }}"
+    name: "{{ user_name }}-{{ project_name }}"
+    state: import
+    login_host: "{{ db_host }}"
+    target: "/mnt/{{ user_name }}-{{ project_name }}-backup.sql"
+  when: project_sql_import|bool == true
+  tags:
+    - init-cluster
+    - mysql-create-database
+
+- name: Delete a database from project 
+  mysql_db:
+    login_user: root
+    login_password: "{{ root_password }}"
+    name: "{{ user_name }}-{{ project_name }}"
+    state: absent
+    login_host: "{{ db_host }}"
+  tags:
+    - remove-cluster
+    - mysql-remove-database

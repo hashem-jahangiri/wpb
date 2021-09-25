@@ -1,0 +1,92 @@
+---
+# tasks file for gluster
+- name: create gluster volume
+  gluster_volume:
+    state: present
+    name: "{{ user_name }}-{{ project_name }}"
+    bricks: "{{ brick_path }}/{{ user_name }}-{{ project_name }}"
+    cluster: "{{ cluster }}"
+    force: yes
+  run_once: true
+  tags:
+   - gluster-create
+   - init-cluster
+  
+- name: Set multiple options on GlusterFS volume
+  gluster_volume:
+    state: present
+    name: "{{ user_name }}-{{ project_name }}"
+    options: "{{ tunning_options }}"
+  run_once: true
+  tags:
+    - gluster-tunning
+
+- name: start gluster volume
+  gluster_volume:
+    state: started
+    name: "{{ user_name }}-{{ project_name }}"
+  run_once: true
+  tags:
+    - gluster-create
+    - init-cluster
+
+- name: limit usage
+  gluster_volume:
+    state: present
+    name: "{{ user_name }}-{{ project_name }}"
+    directory: "{{ quota_directory }}"
+    quota: "{{ quota_size }}"
+  run_once: true
+  tags:
+    - gluster-config
+    - init-cluster
+
+- name: stop gluster volume
+  gluster_volume:
+    state: stopped
+    name: "{{ user_name }}-{{ project_name }}"
+  run_once: true
+  register: result
+  failed_when: result.failed == true and "volume not found" not in result.msg
+  tags:
+    - gluster-stop
+    - remove-cluster
+
+
+- name: remove gluster volume
+  gluster_volume:
+    state: absent
+    name: "{{ user_name }}-{{ project_name }}"
+  run_once: true
+  tags:
+    - gluster-delete
+    - remove-cluster
+
+# - name: Remove the bricks from gluster volume
+#   gluster_volume:
+#     state: present
+#     name: "{{ user_name }}-{{ project_name }}"
+#     bricks: "{{ brick_path }}/{{ user_name }}-{{ project_name }}"
+#     cluster: "{{ cluster }}"
+#     force: true
+#   tags:
+#     - gluster-delete
+#     - remove-cluster
+
+- name: Remove the file path from servers
+  file:
+    path: "{{ brick_path }}/{{ user_name }}-{{ project_name }}"
+    state: absent
+  tags:
+    - remove-cluster
+
+#- name: Reduce cluster configuration
+#  gluster_volume:
+#    state: present
+#    name: testvol
+#    bricks: /bricks/brick3/b1,/bricks/brick4/b2
+#    replicas: 2
+#    cluster:
+#      - 10.70.42.85
+#    force: true
+#  run_once: true

@@ -1,0 +1,35 @@
+---
+# defaults file for gluster
+
+user_name: name
+project_name: project1
+cluster:
+  - 185.213.164.132
+  - 185.213.164.135
+quota_directory: "/"
+quota_size: 10GB
+brick_path: /gluster
+
+gluster_performance_cache: true
+gluster_performance_cache_size: 128MB
+gluster_write_behind: false
+gluster_quick_read: "yes"
+
+#tunning_options:
+#  {
+#    {%- if gluster_performance_cache %}
+#    performance.cache-size: "{{ gluster_performance_cache_size }}"
+#    {% endif %}
+#    {%- if gluster_write_behind %}
+#    gluster_write_behind: "{{ gluster_write_behind }}"
+#    {% endif %}
+#    {%- if gluster_quick_read %}
+#    quick-read: "{{ gluster_quick_read }}"
+#    {% endif %}
+#  }
+
+tunning_options:
+  {
+    performance.cache-size: "{{ gluster_performance_cache_size }}",
+    quick-read: "{{ gluster_quick_read }}"
+  }

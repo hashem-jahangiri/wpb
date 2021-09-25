@@ -1,0 +1,2 @@
+docker service create --name db --hostname db --network baloot --mount "type=bind,source=/mnt/databases_conf/50-server.cnf,target=/etc/mysql/mariadb.conf.d/50-server.cnf" --constraint node.labels.type==database -e MARIADB_ROOT_PASSWORD=your_password mariadb:1.1
+

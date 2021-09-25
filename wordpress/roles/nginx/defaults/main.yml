@@ -1,0 +1,28 @@
+---
+# defaults file for nginx
+domain_name: example.com
+default_domain_name: fromscratch.ir
+levels: "1:2"
+zone: '10m'
+inactive: '240m'
+http_port: 80
+wild_card: False
+user_name: test
+project_name: test
+buffering: 'on'
+cache_valid: '48h'
+cache_update: 'on'
+http_version: 1.1
+remote_path: /usr/local/nginx/conf/vhost
+ssl_port:
+domain_https: false
+keepalive:
+session_cache:
+session_timeout:
+access_log:
+error_log:
+max_size: '256m'
+ssl_path: /usr/local/nginx/conf/ssl
+ssl_files:
+  - fullchain.pem
+  - privkey.pem

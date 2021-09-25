@@ -1,0 +1,8 @@
+---
+# defaults file for database
+user_name: name
+project_name: project1
+root_password: your_password
+user_password: your_password
+project_sql_import: false
+db_host: db

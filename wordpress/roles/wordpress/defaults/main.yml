@@ -1,0 +1,57 @@
+---
+# defaults file for wordpress
+
+user_name: user
+project_name: project
+image_name:
+swarm_network: baloot
+cpu_reservation:
+memory_reservation:
+cpu_limit:
+memory_limit:
+db_name: "{{ user_name }}-{{ project_name }}"
+user_password: your_password
+project_wordpress_import: False
+domain_name: ali.asghar
+domain_https: False
+db_host: db
+
+database_commands:
+  - command: "( *define\\( *[\"']DB_NAME[\"'] *, *['\"])[^\"']*(.*;)"
+    replace: "\\1{{ user_name }}-{{ project_name }}\\2"
+  - command: "( *define\\( *[\"']DB_USER[\"'] *, *['\"])[^\"']*(.*;)"
+    replace: "\\1{{ user_name }}\\2"
+  - command: "( *define\\( *[\"']DB_PASSWORD[\"'] *, *['\"])[^\"']*(.*;)"
+    replace: "\\1{{ user_password }}\\2"
+  - command: "( *define\\( *[\"']DB_HOST[\"'] *, *['\"])[^\"']*(.*;)"
+    replace: "\\1{{ db_host }}\\2"
+
+remove_ssl_commands:
+  - command: " *define\\( *[\"']FORCE_SSL_ADMIN[\"'] *, [^\\;]*;"
+    replace: ""
+  - command: " *define\\( *[\"']FORCE_SSL_LOGIN[\"'] *, [^\\;]*;"
+    replace: ""
+  - command: " *define\\( *[\"']WP_HOME[\"'] *, [^\\;]*;"
+    replace: ""
+  - command: " *define\\( *[\"']WP_SITEURL[\"'] *, [^\\;]*;"
+    replace: ""
+  - command: " *if.*_SERVER\\[[\"']HTTP_X_FORWARDED_PROTO[\"']\\] *== *[\"']https[\"'] *\\)"
+    replace: ""
+  - command: ".*_SERVER\\[[\"']HTTPS[\"']\\].*"
+    replace: ""
+
+add_line_wpconfig:
+  - "echo \"define('FORCE_SSL_ADMIN', true);\" >> /mnt/{{ user_name }}-{{ project_name }}/wp-config.php"
+  - "echo \"define('FORCE_SSL_LOGIN', true);\" >> /mnt/{{ user_name }}-{{ project_name }}/wp-config.php"
+  - "echo \"if (\\$_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https')\" >> /mnt/{{ user_name }}-{{ project_name }}/wp-config.php"
+  - "echo \"\\$_SERVER['HTTPS']='on';\" >> /mnt/{{ user_name }}-{{ project_name }}/wp-config.php"
+  - "echo \"define('WP_HOME','http://{{ domain_name }}');\" >> /mnt/{{ user_name }}-{{ project_name }}/wp-config.php"
+  - "echo \"define('WP_SITEURL','http://{{ domain_name }}');\" >> /mnt/{{ user_name }}-{{ project_name }}/wp-config.php"
+
+https_config_lines:
+  - "define('WP_SITEURL', 'https://'.$_SERVER['HTTP_HOST']);"
+  - "define('WP_HOME', 'https://'.$_SERVER['HTTP_HOST']);"
+  - "$_SERVER['HTTPS']='on';"
+  - "if ($_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https')"
+  - "define('FORCE_SSL_LOGIN', true);"
+  - "define('FORCE_SSL_ADMIN', true);"
